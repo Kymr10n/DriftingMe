@@ -24,12 +24,17 @@ git clone https://github.com/YOUR_USERNAME/DriftingMe.git
 cd DriftingMe
 ```
 
-2. Start the services:
+2. Set up permissions (required for Docker volume mounts):
+```bash
+./setup.sh
+```
+
+3. Start the services:
 ```bash
 docker compose up -d
 ```
 
-3. Access the interfaces:
+4. Access the interfaces:
    - **Automatic1111 WebUI**: http://localhost:7860
    - **ComfyUI**: http://localhost:8188
 
@@ -84,6 +89,22 @@ To view logs:
 ```bash
 docker compose logs -f
 ```
+
+## Troubleshooting
+
+### Permission Errors
+If you encounter permission errors like "Permission denied: 'outputs/txt2img-images'":
+```bash
+# Run the setup script to fix permissions
+./setup.sh
+
+# Or manually fix permissions
+sudo chown -R $(whoami):$(whoami) outputs/ models/ config/ art/
+chmod -R 755 outputs/ models/ config/ art/
+```
+
+### xFormers Issues
+The containers are configured with CUDA-compatible xFormers. If you see xFormers warnings, the containers will automatically fall back to standard attention mechanisms.
 
 ## License
 
