@@ -10,6 +10,8 @@ ENV VIRTUAL_ENV=/opt/webui/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN git config --global --add safe.directory /opt/webui
 RUN pip install --upgrade pip && pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision torchaudio
+# Install CUDA-compatible xformers
+RUN pip install xformers --index-url https://download.pytorch.org/whl/cu121
 # Fix permissions for user
 RUN chown -R user:user /opt/webui /opt/webui/venv
 USER user
