@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  a1111:
+    build:
+      context: ./docker/a1111
+    container_name: driftingme-a1111
+    user: "1000:1000"
+    ports:
+      - "7860:7860"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CLI_ARGS=--listen --port 7860 --xformers --medvram --theme=dark --enable-insecure-extension-access
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - ./models:/opt/webui/models
+      - ./outputs:/opt/webui/outputs
+      - ./config:/opt/webui/config
+      - ./art:/opt/webui/art
+    gpus: all
+    restart: unless-stopped
+
+  comfyui:
+    build:
+      context: ./docker/comfyui
+    container_name: driftingme-comfyui
+    ports:
+      - "8188:8188"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - ./models:/root/ComfyUI/models
+      - ./outputs:/root/ComfyUI/output
+      - ./custom_nodes:/root/ComfyUI/custom_nodes
+      - ./config:/root/ComfyUI/user
+      - ./art:/root/ComfyUI/art
+    gpus: all
+    restart: unless-stopped

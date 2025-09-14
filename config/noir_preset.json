@@ -1,0 +1,9 @@
+{
+  "name": "noir_sdxl_preset",
+  "positive": "film noir, high-contrast chiaroscuro lighting, dramatic shadows, rain-soaked city at night, 35mm cinematic, deep blacks, hard rim light, subtle grain, inked outlines, consistent character: 35yo man, short messy dark hair, light stubble, tired eyes, clean composition, storytelling panel, evocative mood",
+  "negative": "blurry, low-res, extra fingers, deformed hands, watermark, signature, oversaturated colors, cartoonish, low contrast, flat lighting, text artifacts",
+  "guidance": 7.0,
+  "steps": 30,
+  "sampler": "DPM++ 2M Karras",
+  "sd_model_hint": "Place SDXL noir/comic checkpoint in models/"
+}
