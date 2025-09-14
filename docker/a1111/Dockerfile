@@ -12,9 +12,14 @@ RUN git config --global --add safe.directory /opt/webui
 RUN pip install --upgrade pip && pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision torchaudio
 # Install CUDA-compatible xformers
 RUN pip install xformers --index-url https://download.pytorch.org/whl/cu121
+# Copy startup script
+COPY startup.sh /opt/webui/startup.sh
+RUN chmod +x /opt/webui/startup.sh
 # Fix permissions for user
 RUN chown -R user:user /opt/webui /opt/webui/venv
+# Create presets directory and copy noir preset
+RUN mkdir -p /opt/webui/presets
 USER user
 EXPOSE 7860
 ENV CLI_ARGS="--listen --port 7860 --xformers --medvram"
-CMD bash -lc "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4 ./webui.sh ${CLI_ARGS}"
+CMD ["/opt/webui/startup.sh"]
