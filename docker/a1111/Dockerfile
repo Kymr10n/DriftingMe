@@ -17,8 +17,6 @@ COPY startup.sh /opt/webui/startup.sh
 RUN chmod +x /opt/webui/startup.sh
 # Fix permissions for user
 RUN chown -R user:user /opt/webui /opt/webui/venv
-# Create presets directory and copy noir preset
-RUN mkdir -p /opt/webui/presets
 USER user
 EXPOSE 7860
 ENV CLI_ARGS="--listen --port 7860 --xformers --medvram"

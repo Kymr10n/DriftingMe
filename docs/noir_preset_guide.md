@@ -1,6 +1,6 @@
 # Noir Preset Configuration
 
-The `noir_preset.json` contains optimized settings for creating film noir style images. Since Automatic1111 WebUI doesn't automatically load custom JSON presets, here's how to apply these settings:
+These are the optimized settings for creating film noir style images with the DriftingMe setup. Apply these settings manually in the Automatic1111 WebUI for the best noir aesthetic.
 
 ## Manual Setup
 

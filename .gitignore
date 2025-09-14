@@ -114,6 +114,8 @@ custom_nodes/*/
 config/private/
 config/*.key
 config/*.secret
+config/*.db
+config/settings.json
 
 # Docker volumes data
 docker-data/
