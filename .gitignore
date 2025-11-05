@@ -73,6 +73,11 @@ models/hypernetworks/*.safetensors
 models/hypernetworks/*.pt
 models/controlnet/*.safetensors
 models/controlnet/*.pth
+models/RealESRGAN/*.pth
+models/clip_vision/*.safetensors
+models/Codeformer/*
+models/GFPGAN/*
+models/VAE-approx/*
 
 # Generated outputs
 outputs/
@@ -116,6 +121,11 @@ config/*.key
 config/*.secret
 config/*.db
 config/settings.json
+config/default/
+
+# API response files (temporary/debugging)
+*_response.json
+*.response.json
 
 # Docker volumes data
 docker-data/
