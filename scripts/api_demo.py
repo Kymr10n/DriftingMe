@@ -9,6 +9,7 @@ import json
 import base64
 import os
 from datetime import datetime
+from config import get_config
 
 def generate_noir_demo():
     """Generate a demo noir image via A1111 API"""
@@ -36,8 +37,9 @@ def generate_noir_demo():
     print(f"📐 Dimensions: {payload['width']}x{payload['height']}")
     
     try:
+        api_url = get_config('A1111_URL')
         response = requests.post(
-            "http://localhost:7860/sdapi/v1/txt2img", 
+            f"{api_url}/sdapi/v1/txt2img", 
             json=payload, 
             timeout=60
         )

@@ -9,10 +9,11 @@ import json
 import base64
 import os
 from datetime import datetime
+from config import get_config
 
 # API endpoints
-A1111_URL = "http://localhost:7860"
-COMFYUI_URL = "http://localhost:8188"
+A1111_URL = get_config('A1111_URL')
+COMFYUI_URL = get_config('COMFYUI_URL')
 
 # Noir-style prompt based on the preset guide
 NOIR_PROMPT = """
@@ -57,7 +58,7 @@ def test_a1111_api():
                 image_data = base64.b64decode(result['images'][0])
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"noir_a1111_{timestamp}.png"
-                filepath = f"/home/alex/Projects/DriftingMe/outputs/{filename}"
+                filepath = os.path.join("outputs", filename)
                 
                 with open(filepath, 'wb') as f:
                     f.write(image_data)
@@ -117,7 +118,7 @@ def main():
     print("=" * 50)
     
     # Ensure output directory exists
-    os.makedirs("/home/alex/Projects/DriftingMe/outputs", exist_ok=True)
+    os.makedirs("outputs", exist_ok=True)
     
     # Test both APIs
     a1111_success = test_a1111_api()

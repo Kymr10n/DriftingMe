@@ -10,9 +10,10 @@ import base64
 import os
 import argparse
 from datetime import datetime
+from config import get_config
 
 # API Configuration
-A1111_URL = "http://localhost:7860"
+A1111_URL = get_config('A1111_URL')
 
 # Noir presets based on the guide
 NOIR_SCENES = {

@@ -30,7 +30,7 @@ Both A1111 and ComfyUI APIs are now **fully operational** and ready for programm
 ## 📊 Test Results
 
 ### Generated Images
-- **Location**: `/home/alex/Projects/DriftingMe/outputs/`
+- **Location**: `./outputs/` (relative to project root)
 - **Successful Generations**: 2 images
 - **Quality**: High-resolution noir-style images
 - **File Sizes**: ~500KB per image

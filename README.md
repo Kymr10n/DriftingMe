@@ -24,19 +24,25 @@ git clone https://github.com/YOUR_USERNAME/DriftingMe.git
 cd DriftingMe
 ```
 
-2. Set up permissions (required for Docker volume mounts):
+2. Configure environment (optional):
+```bash
+cp .env.template .env
+# Edit .env with your specific configuration
+```
+
+3. Set up permissions (required for Docker volume mounts):
 ```bash
 ./setup.sh
 ```
 
-3. Start the services:
+4. Start the services:
 ```bash
 docker compose up -d
 ```
 
-4. Access the interfaces:
-   - **Automatic1111 WebUI**: http://localhost:7860
-   - **ComfyUI**: http://localhost:8188
+5. Access the interfaces:
+   - **Automatic1111 WebUI**: http://localhost:7860 (configurable via A1111_URL)
+   - **ComfyUI**: http://localhost:8188 (configurable via COMFYUI_URL)
 
 ## Directory Structure
 
@@ -105,6 +111,20 @@ chmod -R 755 outputs/ models/ config/ art/
 
 ### xFormers Issues
 The containers are configured with CUDA-compatible xFormers. If you see xFormers warnings, the containers will automatically fall back to standard attention mechanisms.
+
+## Configuration & Security
+
+### Environment Variables
+All sensitive configuration is managed through the `.env` file (not tracked in git):
+- Copy `.env.template` to `.env` and customize for your setup
+- Never commit `.env` files to version control
+- For remote deployment, see `docs/Remote_Deployment.md`
+
+### Available Configuration
+- `A1111_URL`: API URL for Automatic1111 
+- `COMFYUI_URL`: API URL for ComfyUI
+- `REMOTE_HOST`: SSH host for remote deployment
+- `REMOTE_PROJECT_DIR`: Remote project directory
 
 ## License
 
