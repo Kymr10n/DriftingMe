@@ -27,6 +27,7 @@ The following models need to be downloaded manually and placed in their respecti
 - **SDXL Base 1.0**: `models/checkpoints/sd_xl_base_1.0.safetensors`
   - Download from: [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)
   - Size: ~6.9GB
+  - Note: Automatically symlinked to `models/Stable-diffusion/` for A1111 compatibility
 
 #### Optional Enhancement Models
 These will be automatically downloaded by the containers on first run:
@@ -37,8 +38,15 @@ These will be automatically downloaded by the containers on first run:
 
 ### 3. Start Services
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+**Important**: If models appear missing in ComfyUI after first startup, restart the containers:
+```bash
+docker compose down
+docker compose up -d
+```
+This ensures proper volume mounting of large model files.
 
 ### 4. Verify Setup
 Wait for containers to fully start (2-3 minutes), then test:
