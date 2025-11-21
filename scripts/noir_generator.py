@@ -47,11 +47,11 @@ NOIR_SETTINGS = {
     "cfg_scale": 8.0,
     "sampler_name": "DPM++ 2M Karras",
     "scheduler": "Karras",
-    "restore_faces": True,
-    "enable_hr": True,
-    "hr_scale": 1.5,
-    "hr_upscaler": "R-ESRGAN 4x+",
-    "hr_second_pass_steps": 15,
+    "restore_faces": False,  # Disabled until face restoration models are loaded
+    "enable_hr": False,  # Disabled for now, can enable after testing
+    # "hr_scale": 1.5,
+    # "hr_upscaler": "R-ESRGAN 4x+",
+    # "hr_second_pass_steps": 15,
 }
 
 def get_dimensions(aspect_ratio):
