@@ -18,12 +18,9 @@ COMFYUI_URL = get_config('COMFYUI_URL')
 
 
 # Shared style components for consistent visual language
-STYLE_PREFIX = """black and white noir comic panel, clean inked line art, bold contour lines, controlled cross-hatching, screentone shading,
-high contrast chiaroscuro lighting, crisp edges, readable facial features, anatomically correct hands,
-clear focal subject, minimal clutter, cinematic composition, 1940s film noir mood, graphic novel panel,"""
+STYLE_PREFIX = """black and white comic book art, clean ink drawing, simple style,"""
 
-STYLE_SUFFIX = """single frame comic panel, sharp linework, consistent ink weight, clear silhouettes, strong foreground/background separation,
-professional comic inking, not abstract, not messy"""
+STYLE_SUFFIX = """clear image, not abstract, not messy"""
 
 # Shared negative prompt - blocks all unwanted styles
 SHARED_NEGATIVE = """photorealistic, photo, 3d, render, painting, watercolor, oil, pastel, soft shading, gradient shading, color, colored,
@@ -38,26 +35,17 @@ low detail, unreadable face, faceless, distorted eyes"""
 # Scene 1 Panel Specifications
 SCENE_1_PROMPTS = {
     "awakening_medium_shot": {
-        "panel_spec": """medium shot, camera angle slightly above, man sitting upright in bed startled awake,
-        woman lying beside him still sleeping, venetian blind casting parallel shadow bars across bed and figures,
-        dark bedroom interior, rumpled sheets and pillows visible, man's face shows shock and confusion,
-        woman's face partially visible in shadow, window with blinds in background""",
+        "panel_spec": """two people in a bed, man sitting up awake, woman lying down sleeping, bedroom interior, bed with blanket and pillows, window with venetian blinds in background, shadow stripes on wall""",
         "style_note": "Medium shot - man in bed, woman half-seen, venetian blind shadows"
     },
     
     "close_up_eyes": {
-        "panel_spec": """tight close-up framing, camera straight on, man's face filling frame,
-        eyes wide open expressing fear and confusion, venetian blind shadow bars crossing horizontally across face,
-        strong rim lighting from window behind, deep shadows under eyes and cheekbones,
-        hair disheveled, visible sweat on forehead, intense emotional expression""",
+        "panel_spec": """man's face, eyes wide open, worried expression""",
         "style_note": "Close-up - eyes reflecting confusion and disorientation"
     },
     
     "room_overview": {
-        "panel_spec": """wide establishing shot, camera angle from corner of room looking across space,
-        unmade bed with rumpled sheets in foreground, venetian blind on window casting geometric shadow pattern on wall,
-        rain visible on window glass outside, dresser or nightstand visible, sparse furniture,
-        dark atmospheric lighting, empty room feeling, strong sense of place and isolation""",
+        "panel_spec": """bedroom, bed, window, simple furniture""",
         "style_note": "Establishing shot - unfamiliar room setting the noir mood"
     },
     
@@ -74,10 +62,10 @@ SCENE_1_PROMPTS = {
 GENERATION_PARAMS = {
     "width": 768,
     "height": 1024,  # Portrait orientation for comic panels
-    "steps": 35,  # Higher steps for better structure resolution
-    "cfg_scale": 6.0,  # Lower CFG to avoid texture overcooking
-    "sampler_name": "DPM++ 2M",  # Better for clean structure than Euler
-    "scheduler": "karras",  # Karras scheduler for cleaner results
+    "steps": 25,  # Balanced steps
+    "cfg_scale": 6.5,  # Balanced CFG - not too high, not too low
+    "sampler_name": "DPM++ 2M",  # Better structure control
+    "scheduler": "karras",  # Karras for quality
     "seed": -1,  # Random seed for variation
     "batch_size": 1,
     "n_iter": 2,  # Generate 2 variations per prompt
