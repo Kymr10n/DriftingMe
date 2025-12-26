@@ -72,7 +72,7 @@ def create_basic_workflow(
         },
         "4": {
             "inputs": {
-                "ckpt_name": "v1-5-pruned-emaonly.safetensors"
+                "ckpt_name": "deliberate_v3.safetensors"
             },
             "class_type": "CheckpointLoaderSimple",
             "_meta": {"title": "Load Checkpoint"}
