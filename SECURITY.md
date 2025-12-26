@@ -31,7 +31,6 @@ The `.gitignore` file is configured to exclude:
 
 ### Default Values
 All scripts use safe defaults when environment variables are not set:
-- `A1111_URL`: `http://localhost:7860`
 - `COMFYUI_URL`: `http://localhost:8188` 
 - `REMOTE_HOST`: `user@remote-server.com`
 - `REMOTE_PROJECT_DIR`: `~/DriftingMe`

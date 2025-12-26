@@ -1,10 +1,27 @@
 #!/bin/bash
+set -euo pipefail
+
 # SSH Tunnel Script for DriftingMe Remote Access
 # Creates SSH tunnels to access remote web interfaces locally
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        
+        # Validate key format (alphanumeric and underscore only)
+        if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+            echo "WARNING: Invalid env var name: $key" >&2
+            continue
+        fi
+        
+        # Remove quotes and export safely
+        value="${value%\"}"
+        value="${value#\"}"
+        export "$key=$value"
+    done < .env
 fi
 
 REMOTE_HOST="${REMOTE_HOST:-user@remote-server.com}"
@@ -32,21 +49,42 @@ create_tunnel() {
     local local_port=$1
     local remote_port=$2
     local service_name=$3
+    local max_attempts=5
     
-    if check_port $local_port; then
-        echo -e "${GREEN}🔗 Creating tunnel for $service_name: localhost:$local_port -> $REMOTE_HOST:$remote_port${NC}"
-        ssh -N -L $local_port:localhost:$remote_port $REMOTE_HOST &
-        echo $! > "/tmp/driftingme_tunnel_${service_name}.pid"
-        sleep 2
-    else
+    if ! check_port $local_port; then
         echo -e "${YELLOW}⏭️  Skipping $service_name tunnel (port $local_port already in use)${NC}"
+        return 1
     fi
+    
+    echo -e "${GREEN}🔗 Creating tunnel for $service_name: localhost:$local_port -> $REMOTE_HOST:$remote_port${NC}"
+    
+    # Start tunnel in background
+    ssh -N -L "$local_port:localhost:$remote_port" "$REMOTE_HOST" &
+    local pid=$!
+    echo "$pid" > "/tmp/driftingme_tunnel_${service_name}.pid"
+    
+    # Verify tunnel established
+    for i in $(seq 1 $max_attempts); do
+        sleep 2
+        if kill -0 "$pid" 2>/dev/null && command -v nc >/dev/null 2>&1 && nc -z localhost "$local_port" 2>/dev/null; then
+            echo -e "${GREEN}✅ $service_name tunnel verified${NC}"
+            return 0
+        fi
+    done
+    
+    # Cleanup failed tunnel
+    if kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null || true
+    fi
+    rm -f "/tmp/driftingme_tunnel_${service_name}.pid"
+    echo -e "${RED}❌ $service_name tunnel failed to establish${NC}"
+    return 1
 }
 
 # Function to stop tunnels
 stop_tunnels() {
     echo -e "${BLUE}🛑 Stopping SSH tunnels...${NC}"
-    for service in a1111 comfyui; do
+    for service in comfyui; do
         pidfile="/tmp/driftingme_tunnel_${service}.pid"
         if [ -f "$pidfile" ]; then
             pid=$(cat "$pidfile")
@@ -62,18 +100,16 @@ stop_tunnels() {
 # Function to show tunnel status
 show_status() {
     echo -e "${BLUE}📊 Tunnel Status:${NC}"
-    for service in a1111 comfyui; do
+    for service in comfyui; do
         pidfile="/tmp/driftingme_tunnel_${service}.pid"
         if [ -f "$pidfile" ]; then
             pid=$(cat "$pidfile")
             if ps -p $pid > /dev/null 2>&1; then
                 case $service in
-                    "a1111")
-                        echo -e "${GREEN}✅ A1111 WebUI: http://localhost:7860 (PID: $pid)${NC}"
-                        ;;
                     "comfyui")
                         echo -e "${GREEN}✅ ComfyUI: http://localhost:8188 (PID: $pid)${NC}"
                         ;;
+                esac
                 esac
             else
                 echo -e "${YELLOW}❌ $service tunnel not running${NC}"

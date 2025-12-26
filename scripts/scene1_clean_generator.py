@@ -4,14 +4,15 @@ DriftingMe Scene 1 Generator - REFINED VERSION
 Clean noir comic book style with crisp lines and geometric shadows
 """
 
-import requests
-import json
-import base64
 from datetime import datetime
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # API Configuration
-A1111_URL = "http://localhost:7860"
 COMFYUI_URL = "http://localhost:8188"
 
 # REFINED Scene 1 Prompts - Clean Abstract Noir Style
@@ -134,7 +135,7 @@ def create_enhanced_negative(base_negative):
 def generate_scene_1_panel(prompt_key, custom_seed=None, use_enhanced=True):
     """Generate a specific panel for Scene 1 with optional enhanced prompts"""
     if prompt_key not in SCENE_1_PROMPTS:
-        print(f"Unknown prompt key: {prompt_key}")
+        logger.info(f"Unknown prompt key: {prompt_key}")
         return False
     
     scene_data = SCENE_1_PROMPTS[prompt_key]
@@ -157,15 +158,14 @@ def generate_scene_1_panel(prompt_key, custom_seed=None, use_enhanced=True):
     if custom_seed:
         payload["seed"] = custom_seed
     
-    print(f"\n🎨 Generating CLEAN Scene 1 Panel: {prompt_key}")
-    print(f"📐 Style Note: {scene_data['style_note']}")
-    print(f"✨ Enhanced Prompts: {'Yes' if use_enhanced else 'No'}")
+    logger.info(f"\n🎨 Generating CLEAN Scene 1 Panel: {prompt_key}")
+    logger.info(f"📐 Style Note: {scene_data['style_note']}")
+    logger.info(f"✨ Enhanced Prompts: {'Yes' if use_enhanced else 'No'}")
     
     try:
-        response = requests.post(f"{A1111_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
+        response = requests.post(f"{COMFYUI_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
         
-        if response.status_code == 200:
-            result = response.json()
+        if images:
             
             # Save generated images
             for i, image_data in enumerate(result['images']):
@@ -180,29 +180,28 @@ def generate_scene_1_panel(prompt_key, custom_seed=None, use_enhanced=True):
                     f.write(image_bytes)
                 
                 file_size = len(image_bytes) / 1024
-                print(f"✅ Saved: {filename} ({file_size:.1f}KB)")
+                logger.info(f"✅ Saved: {filename} ({file_size:.1f}KB)")
             
-            # Print generation info
-            info = json.loads(result['info'])
-            print(f"🔧 Model: {info.get('sd_model_name', 'Unknown')}")
-            print(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
-            print(f"🎯 CFG Scale: {payload['cfg_scale']}")
-            print(f"🔄 Sampler: {payload['sampler_name']}")
+            # Generation complete
+            
+            logger.info(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
+            logger.info(f"🎯 CFG Scale: {payload['cfg_scale']}")
+            logger.info(f"🔄 Sampler: {payload['sampler_name']}")
             
             return True
             
         else:
-            print(f"❌ API Error: {response.status_code} - {response.text}")
+            logger.info(f"❌ API Error: {response.status_code} - {response.text}")
             return False
             
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Connection Error: {e}")
+    except Exception as e:
+        logger.info(f"❌ Connection Error: {e}")
         return False
 
 def generate_clean_comparison():
     """Generate clean versions of key panels for comparison"""
-    print("🎭 DRIFTINGME - Clean Style Comparison")
-    print("=" * 50)
+    logger.info("🎭 DRIFTINGME - Clean Style Comparison")
+    logger.info("=" * 50)
     
     # Test with the most important panels
     test_panels = ["awakening_medium_shot", "minimal_awakening", "architectural_shadows"]
@@ -211,10 +210,10 @@ def generate_clean_comparison():
     for prompt_key in test_panels:
         if generate_scene_1_panel(prompt_key, use_enhanced=True):
             success_count += 1
-        print("-" * 30)
+        logger.info("-" * 30)
     
-    print(f"\n📊 Clean Style Test Complete:")
-    print(f"✅ Successfully generated: {success_count}/{len(test_panels)} panels")
+    logger.info(f"\n📊 Clean Style Test Complete:")
+    logger.info(f"✅ Successfully generated: {success_count}/{len(test_panels)} panels")
 
 def main():
     import sys
@@ -224,28 +223,28 @@ def main():
         if command == "clean":
             generate_clean_comparison()
         elif command == "all-clean":
-            print("Generating all panels with clean style...")
+            logger.info("Generating all panels with clean style...")
             success = 0
             for key in SCENE_1_PROMPTS.keys():
                 if generate_scene_1_panel(key, use_enhanced=True):
                     success += 1
-            print(f"Generated {success}/{len(SCENE_1_PROMPTS)} clean panels")
+            logger.info(f"Generated {success}/{len(SCENE_1_PROMPTS)} clean panels")
         elif command in SCENE_1_PROMPTS:
             # Enhanced by default, add "raw" for original
             enhanced = "raw" not in sys.argv
             generate_scene_1_panel(command, use_enhanced=enhanced)
         else:
-            print(f"Unknown command: {command}")
+            logger.info(f"Unknown command: {command}")
     else:
-        print("🎨 DriftingMe CLEAN Scene 1 Generator")
-        print("\nAvailable panels:")
+        logger.info("🎨 DriftingMe CLEAN Scene 1 Generator")
+        logger.info("\nAvailable panels:")
         for key, data in SCENE_1_PROMPTS.items():
-            print(f"  • {key}: {data['style_note']}")
-        print(f"\nCommands:")
-        print(f"  clean                    - Test clean style with key panels")
-        print(f"  all-clean               - Generate all panels with clean style")
-        print(f"  <panel_name>            - Generate specific panel (enhanced)")
-        print(f"  <panel_name> raw        - Generate specific panel (original)")
+            logger.info(f"  • {key}: {data['style_note']}")
+        logger.info(f"\nCommands:")
+        logger.info(f"  clean                    - Test clean style with key panels")
+        logger.info(f"  all-clean               - Generate all panels with clean style")
+        logger.info(f"  <panel_name>            - Generate specific panel (enhanced)")
+        logger.info(f"  <panel_name> raw        - Generate specific panel (original)")
 
 if __name__ == "__main__":
     main()

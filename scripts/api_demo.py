@@ -4,18 +4,17 @@ DriftingMe Final API Demo
 Simple demonstration of programmatic noir image generation.
 """
 
-import requests
-import json
-import base64
 import os
+import logging
 from datetime import datetime
 from config import get_config
+from comfyui_api import generate_image, check_server_status
 
 def generate_noir_demo():
     """Generate a demo noir image via A1111 API"""
     
-    print("🎬 DriftingMe - Programmatic Noir Generation Demo")
-    print("=" * 60)
+    logger.info("🎬 DriftingMe - Programmatic Noir Generation Demo")
+    logger.info("=" * 60)
     
     # Simple noir prompt
     payload = {
@@ -32,26 +31,25 @@ def generate_noir_demo():
         "save_images": True
     }
     
-    print("📡 Sending API request to A1111...")
-    print(f"🎯 Using seed: {payload['seed']}")
-    print(f"📐 Dimensions: {payload['width']}x{payload['height']}")
+    logger.info("📡 Sending API request to A1111...")
+    logger.info(f"🎯 Using seed: {payload['seed']}")
+    logger.info(f"📐 Dimensions: {payload['width']}x{payload['height']}")
     
     try:
-        api_url = get_config('A1111_URL')
+        api_url = get_config('COMFYUI_URL')
         response = requests.post(
             f"{api_url}/sdapi/v1/txt2img", 
             json=payload, 
             timeout=60
         )
         
-        if response.status_code == 200:
-            result = response.json()
+        if images:
             info = json.loads(result['info'])
             
-            print("✅ Generation successful!")
-            print(f"⚙️  Model: {info['sd_model_name']}")
-            print(f"🔧 Sampler: {info['sampler_name']}")
-            print(f"🎯 Seed: {info['seed']}")
+            logger.info("✅ Generation successful!")
+            logger.info(f"⚙️  Model: {info['sd_model_name']}")
+            logger.info(f"🔧 Sampler: {info['sampler_name']}")
+            logger.info(f"🎯 Seed: {info['seed']}")
             
             # Save image
             if result['images']:
@@ -63,47 +61,47 @@ def generate_noir_demo():
                 with open(f"outputs/{filename}", 'wb') as f:
                     f.write(image_data)
                 
-                print(f"💾 Image saved: outputs/{filename}")
+                logger.info(f"💾 Image saved: outputs/{filename}")
                 
                 # File size
                 file_size = len(image_data) / 1024
-                print(f"📊 File size: {file_size:.1f} KB")
+                logger.info(f"📊 File size: {file_size:.1f} KB")
                 
                 return True
         else:
-            print(f"❌ API Error: {response.status_code}")
-            print(response.text)
+            logger.info(f"❌ API Error: {response.status_code}")
+            logger.info(response.text)
             return False
             
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logger.info(f"❌ Error: {e}")
         return False
 
 def main():
     success = generate_noir_demo()
     
-    print("\n" + "=" * 60)
+    logger.info("\n" + "=" * 60)
     if success:
-        print("🎉 API Demo Complete!")
-        print("\n📋 Summary:")
-        print("✅ A1111 API is working perfectly")
-        print("✅ ComfyUI API is accessible")
-        print("✅ Noir image generation successful")
-        print("✅ Programmatic control achieved")
+        logger.info("🎉 API Demo Complete!")
+        logger.info("\n📋 Summary:")
+        logger.info("✅ A1111 API is working perfectly")
+        logger.info("✅ ComfyUI API is accessible")
+        logger.info("✅ Noir image generation successful")
+        logger.info("✅ Programmatic control achieved")
         
-        print("\n🚀 Next Steps:")
-        print("• Create batch processing scripts")
-        print("• Implement ComfyUI workflows")
-        print("• Build episode content automation")
-        print("• Develop character consistency tools")
+        logger.info("\n🚀 Next Steps:")
+        logger.info("• Create batch processing scripts")
+        logger.info("• Implement ComfyUI workflows")
+        logger.info("• Build episode content automation")
+        logger.info("• Develop character consistency tools")
         
-        print("\n📍 Available for DriftingMe project:")
-        print("• Direct API access for automation")
-        print("• Reproducible generation with seeds")
-        print("• High-quality noir aesthetic")
-        print("• Ready for episode production")
+        logger.info("\n📍 Available for DriftingMe project:")
+        logger.info("• Direct API access for automation")
+        logger.info("• Reproducible generation with seeds")
+        logger.info("• High-quality noir aesthetic")
+        logger.info("• Ready for episode production")
     else:
-        print("❌ Demo failed - check API status")
+        logger.info("❌ Demo failed - check API status")
 
 if __name__ == "__main__":
     main()

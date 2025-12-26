@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
 DriftingMe Remote Noir Generator
-Advanced script for generating noir-style images using A1111 API on remote host.
+Advanced script for generating noir-style images using ComfyUI API on remote host.
 """
 
-import requests
-import json
-import base64
 import os
+import logging
 import argparse
 from datetime import datetime
 from config import get_config
+from comfyui_api import generate_image, check_server_status
 
 # Remote API Configuration 
-A1111_URL = get_config('A1111_URL')
+COMFYUI_URL = get_config('COMFYUI_URL')
 
 # Noir presets based on the guide
 NOIR_SCENES = {
@@ -73,21 +72,21 @@ def wait_for_api_ready(max_attempts=30, delay=10):
     """Wait for the A1111 API to be ready"""
     import time
     
-    print(f"🔄 Waiting for A1111 API at {A1111_URL}...")
+    logger.info(f"🔄 Waiting for A1111 API at {COMFYUI_URL}...")
     
     for attempt in range(max_attempts):
         try:
-            response = requests.get(f"{A1111_URL}/sdapi/v1/options", timeout=5)
+            response = requests.get(f"{COMFYUI_URL}/sdapi/v1/options", timeout=5)
             if response.status_code == 200:
-                print("✅ A1111 API is ready!")
+                logger.info("✅ A1111 API is ready!")
                 return True
-        except requests.exceptions.RequestException:
+        except Exception:
             pass
         
-        print(f"⏳ Attempt {attempt + 1}/{max_attempts} - waiting {delay}s...")
+        logger.info(f"⏳ Attempt {attempt + 1}/{max_attempts} - waiting {delay}s...")
         time.sleep(delay)
     
-    print(f"❌ A1111 API not ready after {max_attempts * delay} seconds")
+    logger.info(f"❌ A1111 API not ready after {max_attempts * delay} seconds")
     return False
 
 def generate_noir_image(scene_type="detective", seed=-1, custom_prompt=None):
@@ -118,15 +117,14 @@ def generate_noir_image(scene_type="detective", seed=-1, custom_prompt=None):
         **NOIR_SETTINGS
     }
     
-    print(f"🎬 Generating noir scene: {scene_name}")
-    print(f"📐 Dimensions: {width}x{height}")
-    print(f"🎯 Seed: {seed if seed != -1 else 'random'}")
+    logger.info(f"🎬 Generating noir scene: {scene_name}")
+    logger.info(f"📐 Dimensions: {width}x{height}")
+    logger.info(f"🎯 Seed: {seed if seed != -1 else 'random'}")
     
     try:
-        response = requests.post(f"{A1111_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
+        response = requests.post(f"{COMFYUI_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
         
-        if response.status_code == 200:
-            result = response.json()
+        if images:
             
             # Save the image
             if result['images']:
@@ -145,7 +143,7 @@ def generate_noir_image(scene_type="detective", seed=-1, custom_prompt=None):
                 with open(filepath, "wb") as f:
                     f.write(image_data)
                 
-                print(f"✅ Image saved: {filepath}")
+                logger.info(f"✅ Image saved: {filepath}")
                 
                 # Save generation info
                 info_file = filepath.replace('.png', '_info.json')
@@ -157,31 +155,31 @@ def generate_noir_image(scene_type="detective", seed=-1, custom_prompt=None):
                     "dimensions": {"width": width, "height": height},
                     "seed": result.get('parameters', {}).get('seed', seed),
                     "timestamp": timestamp,
-                    "api_url": A1111_URL
+                    "api_url": COMFYUI_URL
                 }
                 
                 with open(info_file, 'w') as f:
                     json.dump(generation_info, f, indent=2)
                 
-                print(f"📄 Generation info saved: {info_file}")
+                logger.info(f"📄 Generation info saved: {info_file}")
                 return filepath
             else:
-                print("❌ No images returned from API")
+                logger.info("❌ No images returned from API")
                 return None
         else:
-            print(f"❌ API request failed with status {response.status_code}")
-            print(f"Response: {response.text}")
+            logger.info(f"❌ API request failed with status {response.status_code}")
+            logger.info(f"Response: {response.text}")
             return None
             
-    except requests.exceptions.Timeout:
-        print("❌ Request timed out. The image generation might be taking longer than expected.")
+    except TimeoutError:
+        logger.info("❌ Request timed out. The image generation might be taking longer than expected.")
         return None
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Request failed: {e}")
+    except Exception as e:
+        logger.info(f"❌ Request failed: {e}")
         return None
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate noir-style images using A1111 API")
+    parser = argparse.ArgumentParser(description="Generate noir-style images using ComfyUI API")
     parser.add_argument("--scene", "-s", 
                        choices=list(NOIR_SCENES.keys()) + ["custom"],
                        default="detective",
@@ -201,17 +199,17 @@ def main():
     args = parser.parse_args()
     
     # Update API URL from argument or environment
-    global A1111_URL
-    A1111_URL = os.environ.get('A1111_URL', args.api_url)
+    global COMFYUI_URL
+    COMFYUI_URL = os.environ.get('COMFYUI_URL', args.api_url)
     
     if args.list_scenes:
-        print("Available noir scenes:")
+        logger.info("Available noir scenes:")
         for scene, config in NOIR_SCENES.items():
-            print(f"  {scene}: {config['aspect']} aspect")
+            logger.info(f"  {scene}: {config['aspect']} aspect")
         return
     
     if args.scene == "custom" and not args.prompt:
-        print("❌ Custom scene requires --prompt argument")
+        logger.info("❌ Custom scene requires --prompt argument")
         return
     
     # Generate the image
@@ -219,10 +217,10 @@ def main():
     result = generate_noir_image(scene_input, args.seed, args.prompt if args.scene != "custom" else None)
     
     if result:
-        print(f"🎉 Generation completed successfully!")
-        print(f"📁 File: {result}")
+        logger.info(f"🎉 Generation completed successfully!")
+        logger.info(f"📁 File: {result}")
     else:
-        print("💀 Generation failed")
+        logger.info("💀 Generation failed")
 
 if __name__ == "__main__":
     main()

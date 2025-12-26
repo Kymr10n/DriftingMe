@@ -4,14 +4,19 @@ DriftingMe Integrated Scene Generator
 Combines character design with clean environment style for complete scene generation
 """
 
-import requests
-import json
-import base64
+import logging
 from datetime import datetime
-import os
+from config import get_config, get_output_path
+from comfyui_api import generate_image, check_server_status
+from utils import validate_seed
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # API Configuration
-A1111_URL = "http://localhost:7860"
+COMFYUI_URL = get_config('COMFYUI_URL')
+
 
 # Integrated Scene Prompts - Character + Environment
 INTEGRATED_SCENES = {
@@ -131,9 +136,14 @@ def create_integrated_negative(base_negative):
 
 def generate_integrated_scene(scene_key, custom_seed=None):
     """Generate integrated character + environment scenes"""
+    # Validate inputs
+    if not validate_prompt_key(scene_key):
+        raise ValueError(f"Invalid scene key format: {scene_key}")
+    
     if scene_key not in INTEGRATED_SCENES:
-        print(f"Unknown integrated scene: {scene_key}")
-        return False
+        raise KeyError(f"Unknown integrated scene: {scene_key}")
+    
+    custom_seed = validate_seed(custom_seed)
     
     scene_data = INTEGRATED_SCENES[scene_key]
     
@@ -150,50 +160,69 @@ def generate_integrated_scene(scene_key, custom_seed=None):
     if custom_seed:
         payload["seed"] = custom_seed
     
-    print(f"\n🎬👤 Generating Integrated Scene: {scene_key}")
-    print(f"🎭 Style Note: {scene_data['style_note']}")
-    print(f"🎯 Integration: Character + Environment")
+    logger.info(f"\n🎬👤 Generating Integrated Scene: {scene_key}")
+    logger.info(f"🎭 Style Note: {scene_data['style_note']}")
+    logger.info(f"🎯 Integration: Character + Environment")
     
     try:
-        response = requests.post(f"{A1111_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
+        images = generate_image(
+            prompt=payload["prompt"],
+            negative_prompt=payload["negative_prompt"],
+            width=payload["width"],
+            height=payload["height"],
+            steps=payload["steps"],
+            cfg_scale=payload["cfg_scale"],
+            sampler_name=payload["sampler_name"],
+            scheduler=payload["scheduler"].lower(),
+            seed=payload.get("seed", -1),
+            batch_size=payload.get("n_iter", 1),
+            timeout=300
+        )
         
-        if response.status_code == 200:
-            result = response.json()
+        if images:
             
             # Save generated images
-            for i, image_data in enumerate(result['images']):
+            for i, image_data in enumerate(images):
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"integrated_{scene_key}_{timestamp}_v{i+1}.png"
-                filepath = os.path.join("/home/alex/Projects/DriftingMe/outputs", filename)
+                filename = f"generated_{timestamp}_v{i+1}.png"
+                filepath = get_output_path(filename)
                 
-                # Decode and save
-                image_bytes = base64.b64decode(image_data)
+                # Save image
+                image_bytes = image_data
                 with open(filepath, 'wb') as f:
                     f.write(image_bytes)
                 
                 file_size = len(image_bytes) / 1024
-                print(f"✅ Saved: {filename} ({file_size:.1f}KB)")
+                logger.info(f"✅ Saved: {filename} ({file_size:.1f}KB)")
             
-            # Print generation info
-            info = json.loads(result['info'])
-            print(f"🔧 Model: {info.get('sd_model_name', 'Unknown')}")
-            print(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
-            print(f"🎯 CFG Scale: {payload['cfg_scale']}")
+            # Generation complete
+            
+            logger.info(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
+            logger.info(f"🎯 CFG Scale: {payload['cfg_scale']}")
             
             return True
             
         else:
-            print(f"❌ API Error: {response.status_code} - {response.text}")
+            logger.error(f"API Error: {response.status_code} - {response.text}")
             return False
             
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Connection Error: {e}")
+    except TimeoutError:
+        logger.error(f"API request timed out after 120s")
+        return False
+    except ConnectionError as e:
+        logger.error(f"Connection Error: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Request Error: {e}")
+        return False
+    except Exception as e:
+        logger.critical(f"Unexpected error: {e}", exc_info=True)
         return False
 
 def generate_complete_scene1():
     """Generate complete Scene 1 with integrated character design"""
-    print("🎬👤 DRIFTINGME - Scene 1 Complete Integration")
-    print("=" * 60)
+    logger.info("🎬👤 DRIFTINGME - Scene 1 Complete Integration")
+    logger.info("=" * 60)
     
     # Key integrated scenes for Scene 1
     scene1_shots = [
@@ -205,12 +234,15 @@ def generate_complete_scene1():
     
     success_count = 0
     for shot in scene1_shots:
-        if generate_integrated_scene(shot):
-            success_count += 1
-        print("-" * 40)
+        try:
+            if generate_integrated_scene(shot):
+                success_count += 1
+        except (ValueError, KeyError) as e:
+            logger.error(f"Failed to generate {shot}: {e}")
+        logger.info("-" * 40)
     
-    print(f"\n📊 Scene 1 Integration Complete:")
-    print(f"✅ Successfully generated: {success_count}/{len(scene1_shots)} integrated scenes")
+    logger.info(f"\n📊 Scene 1 Integration Complete:")
+    logger.info(f"✅ Successfully generated: {success_count}/{len(scene1_shots)} integrated scenes")
 
 def main():
     import sys
@@ -220,31 +252,42 @@ def main():
         if command == "scene1":
             generate_complete_scene1()
         elif command == "all":
-            print("Generating all integrated scenes...")
+            logger.info("Generating all integrated scenes...")
             success = 0
             for key in INTEGRATED_SCENES.keys():
-                if generate_integrated_scene(key):
-                    success += 1
-            print(f"Generated {success}/{len(INTEGRATED_SCENES)} integrated scenes")
+                try:
+                    if generate_integrated_scene(key):
+                        success += 1
+                except (ValueError, KeyError) as e:
+                    logger.error(f"Failed to generate {key}: {e}")
+            logger.info(f"Generated {success}/{len(INTEGRATED_SCENES)} integrated scenes")
         elif command in INTEGRATED_SCENES:
             custom_seed = None
             if "seed:" in " ".join(sys.argv):
                 seed_arg = [arg for arg in sys.argv if arg.startswith("seed:")][0]
-                custom_seed = int(seed_arg.split(":")[1])
+                try:
+                    custom_seed = int(seed_arg.split(":")[1])
+                except ValueError as e:
+                    logger.error(f"Invalid seed value: {e}")
+                    sys.exit(1)
             
-            generate_integrated_scene(command, custom_seed)
+            try:
+                generate_integrated_scene(command, custom_seed)
+            except (ValueError, KeyError) as e:
+                logger.error(f"Generation failed: {e}")
+                sys.exit(1)
         else:
-            print(f"Unknown command: {command}")
+            logger.info(f"Unknown command: {command}")
     else:
-        print("🎬👤 DriftingMe Integrated Scene Generator")
-        print("\nAvailable integrated scenes:")
+        logger.info("🎬👤 DriftingMe Integrated Scene Generator")
+        logger.info("\nAvailable integrated scenes:")
         for key, data in INTEGRATED_SCENES.items():
-            print(f"  • {key}: {data['style_note']}")
-        print(f"\nCommands:")
-        print(f"  scene1                  - Generate complete Scene 1 integration")
-        print(f"  all                     - Generate all integrated scenes")  
-        print(f"  <scene_name>            - Generate specific integrated scene")
-        print(f"  <scene_name> seed:12345 - Use custom seed")
+            logger.info(f"  • {key}: {data['style_note']}")
+        logger.info(f"\nCommands:")
+        logger.info(f"  scene1                  - Generate complete Scene 1 integration")
+        logger.info(f"  all                     - Generate all integrated scenes")  
+        logger.info(f"  <scene_name>            - Generate specific integrated scene")
+        logger.info(f"  <scene_name> seed:12345 - Use custom seed")
 
 if __name__ == "__main__":
     main()

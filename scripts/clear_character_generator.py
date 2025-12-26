@@ -4,14 +4,16 @@ DriftingMe Character Generator - REFINED CLOSE-UPS
 Clean noir comic character with clear, defined features - NOT abstract/Picasso style
 """
 
-import requests
-import json
-import base64
 from datetime import datetime
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # API Configuration
-A1111_URL = "http://localhost:7860"
+COMFYUI_URL = "http://localhost:8188"
 
 # REFINED Character Prompts - Clear Features, Not Abstract
 REFINED_CHARACTER_PROMPTS = {
@@ -137,7 +139,7 @@ def create_clear_negative(base_negative):
 def generate_clear_character(prompt_key, custom_seed=None):
     """Generate clear, defined character features"""
     if prompt_key not in REFINED_CHARACTER_PROMPTS:
-        print(f"Unknown character prompt: {prompt_key}")
+        logger.info(f"Unknown character prompt: {prompt_key}")
         return False
     
     char_data = REFINED_CHARACTER_PROMPTS[prompt_key]
@@ -156,51 +158,49 @@ def generate_clear_character(prompt_key, custom_seed=None):
     if custom_seed:
         payload["seed"] = custom_seed
     
-    print(f"\n👤 Generating CLEAR Character: {prompt_key}")
-    print(f"🎭 Style Note: {char_data['style_note']}")
-    print(f"🚫 Anti-Picasso: Strong distortion prevention active")
+    logger.info(f"\n👤 Generating CLEAR Character: {prompt_key}")
+    logger.info(f"🎭 Style Note: {char_data['style_note']}")
+    logger.info(f"🚫 Anti-Picasso: Strong distortion prevention active")
     
     try:
-        response = requests.post(f"{A1111_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
+        response = requests.post(f"{COMFYUI_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
         
-        if response.status_code == 200:
-            result = response.json()
+        if images:
             
             # Save generated images
-            for i, image_data in enumerate(result['images']):
+            for i, image_data in enumerate(images):
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"clear_char_{prompt_key}_{timestamp}_v{i+1}.png"
-                filepath = os.path.join("/home/alex/Projects/DriftingMe/outputs", filename)
+                filename = f"generated_{timestamp}_v{i+1}.png"
+                filepath = get_output_path(filename)
                 
-                # Decode and save
-                image_bytes = base64.b64decode(image_data)
+                # Save image
+                image_bytes = image_data
                 with open(filepath, 'wb') as f:
                     f.write(image_bytes)
                 
                 file_size = len(image_bytes) / 1024
-                print(f"✅ Saved: {filename} ({file_size:.1f}KB)")
+                logger.info(f"✅ Saved: {filename} ({file_size:.1f}KB)")
             
-            # Print generation info
-            info = json.loads(result['info'])
-            print(f"🔧 Model: {info.get('sd_model_name', 'Unknown')}")
-            print(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
-            print(f"🎯 CFG Scale: {payload['cfg_scale']}")
-            print(f"🔄 Sampler: {payload['sampler_name']}")
+            # Generation complete
+            
+            logger.info(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
+            logger.info(f"🎯 CFG Scale: {payload['cfg_scale']}")
+            logger.info(f"🔄 Sampler: {payload['sampler_name']}")
             
             return True
             
         else:
-            print(f"❌ API Error: {response.status_code} - {response.text}")
+            logger.info(f"❌ API Error: {response.status_code} - {response.text}")
             return False
             
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Connection Error: {e}")
+    except Exception as e:
+        logger.info(f"❌ Connection Error: {e}")
         return False
 
 def generate_clear_character_set():
     """Generate complete set of clear character studies"""
-    print("👤 DRIFTINGME - CLEAR Character Studies (Anti-Picasso)")
-    print("=" * 60)
+    logger.info("👤 DRIFTINGME - CLEAR Character Studies (Anti-Picasso)")
+    logger.info("=" * 60)
     
     # Key clear character studies
     clear_studies = [
@@ -214,10 +214,10 @@ def generate_clear_character_set():
     for study in clear_studies:
         if generate_clear_character(study):
             success_count += 1
-        print("-" * 40)
+        logger.info("-" * 40)
     
-    print(f"\n📊 Clear Character Studies Complete:")
-    print(f"✅ Successfully generated: {success_count}/{len(clear_studies)} clear characters")
+    logger.info(f"\n📊 Clear Character Studies Complete:")
+    logger.info(f"✅ Successfully generated: {success_count}/{len(clear_studies)} clear characters")
 
 def main():
     import sys
@@ -227,12 +227,12 @@ def main():
         if command == "clear-set":
             generate_clear_character_set()
         elif command == "all-clear":
-            print("Generating all clear character studies...")
+            logger.info("Generating all clear character studies...")
             success = 0
             for key in REFINED_CHARACTER_PROMPTS.keys():
                 if generate_clear_character(key):
                     success += 1
-            print(f"Generated {success}/{len(REFINED_CHARACTER_PROMPTS)} clear characters")
+            logger.info(f"Generated {success}/{len(REFINED_CHARACTER_PROMPTS)} clear characters")
         elif command in REFINED_CHARACTER_PROMPTS:
             custom_seed = None
             if "seed:" in " ".join(sys.argv):
@@ -241,17 +241,17 @@ def main():
             
             generate_clear_character(command, custom_seed)
         else:
-            print(f"Unknown command: {command}")
+            logger.info(f"Unknown command: {command}")
     else:
-        print("👤 DriftingMe CLEAR Character Generator (Anti-Picasso)")
-        print("\nAvailable clear character studies:")
+        logger.info("👤 DriftingMe CLEAR Character Generator (Anti-Picasso)")
+        logger.info("\nAvailable clear character studies:")
         for key, data in REFINED_CHARACTER_PROMPTS.items():
-            print(f"  • {key}: {data['style_note']}")
-        print(f"\nCommands:")
-        print(f"  clear-set               - Generate core clear character set")
-        print(f"  all-clear              - Generate all clear character studies")
-        print(f"  <study_name>           - Generate specific clear character")
-        print(f"  <study_name> seed:123  - Use custom seed")
+            logger.info(f"  • {key}: {data['style_note']}")
+        logger.info(f"\nCommands:")
+        logger.info(f"  clear-set               - Generate core clear character set")
+        logger.info(f"  all-clear              - Generate all clear character studies")
+        logger.info(f"  <study_name>           - Generate specific clear character")
+        logger.info(f"  <study_name> seed:123  - Use custom seed")
 
 if __name__ == "__main__":
     main()

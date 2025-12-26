@@ -1,10 +1,9 @@
 # DriftingMe
 
-A Docker-based Stable Diffusion environment featuring both Automatic1111 WebUI and ComfyUI for AI image generation.
+A Docker-based Stable Diffusion environment featuring ComfyUI for AI image generation with a focus on noir-style comic creation.
 
 ## Features
 
-- **Automatic1111 WebUI**: Full-featured web interface for Stable Diffusion
 - **ComfyUI**: Node-based interface for advanced workflows
 - **CUDA Support**: GPU acceleration for faster generation
 - **Docker Compose**: Easy deployment and management
@@ -41,7 +40,6 @@ docker compose up -d
 ```
 
 5. Access the interfaces:
-   - **Automatic1111 WebUI**: http://localhost:7860 (configurable via A1111_URL)
    - **ComfyUI**: http://localhost:8188 (configurable via COMFYUI_URL)
 
 ## Directory Structure
@@ -49,7 +47,6 @@ docker compose up -d
 ```
 DriftingMe/
 ├── docker/
-│   ├── a1111/          # Automatic1111 Dockerfile
 │   └── comfyui/        # ComfyUI Dockerfile
 ├── models/             # AI models storage
 ├── outputs/            # Generated images
@@ -73,11 +70,6 @@ Place your Stable Diffusion models in the appropriate directories:
 - VAE: `models/vae/` or `models/VAE/`
 
 ## Docker Services
-
-### Automatic1111 WebUI
-- Port: 7860
-- Features: SDXL support, xformers, dark theme
-- GPU: Full GPU access
 
 ### ComfyUI
 - Port: 8188
@@ -121,7 +113,6 @@ All sensitive configuration is managed through the `.env` file (not tracked in g
 - For remote deployment, see `docs/Remote_Deployment.md`
 
 ### Available Configuration
-- `A1111_URL`: API URL for Automatic1111 
 - `COMFYUI_URL`: API URL for ComfyUI
 - `REMOTE_HOST`: SSH host for remote deployment
 - `REMOTE_PROJECT_DIR`: Remote project directory

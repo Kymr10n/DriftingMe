@@ -2,11 +2,26 @@
 # DriftingMe Remote Deployment Script
 # Deploys and manages the DriftingMe project on a remote server
 
-set -e
+set -euo pipefail
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        
+        # Validate key format
+        if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+            echo "ERROR: Invalid env var name: $key" >&2
+            exit 1
+        fi
+        
+        # Remove quotes and export safely
+        value="${value%\"}"
+        value="${value#\"}"
+        export "$key=$value"
+    done < .env
 fi
 
 # Configuration

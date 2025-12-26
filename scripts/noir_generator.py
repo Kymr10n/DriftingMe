@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
 DriftingMe Noir Generator
-Advanced script for generating noir-style images using A1111 API with optimized settings.
+Advanced script for generating noir-style images using ComfyUI API with optimized settings.
 """
 
-import requests
-import json
-import base64
 import os
 import argparse
+import logging
 from datetime import datetime
 from config import get_config
+from comfyui_api import generate_image, check_server_status
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # API Configuration
-A1111_URL = get_config('A1111_URL')
+COMFYUI_URL = get_config('COMFYUI_URL')
 
 # Noir presets based on the guide
 NOIR_SCENES = {
@@ -64,7 +67,7 @@ def get_dimensions(aspect_ratio):
         return 512, 512
 
 def generate_noir_image(scene_type, custom_prompt=None, seed=-1, output_dir="outputs"):
-    """Generate a noir-style image using A1111 API"""
+    """Generate a noir-style image using ComfyUI API"""
     
     if scene_type not in NOIR_SCENES and not custom_prompt:
         raise ValueError(f"Unknown scene type: {scene_type}. Available: {list(NOIR_SCENES.keys())}")
@@ -80,62 +83,58 @@ def generate_noir_image(scene_type, custom_prompt=None, seed=-1, output_dir="out
         width, height = get_dimensions(scene["aspect"])
         scene_name = scene_type
     
-    # Create payload
-    payload = {
-        "prompt": prompt,
-        "negative_prompt": NOIR_NEGATIVE,
-        "width": width,
-        "height": height,
-        "seed": seed,
-        **NOIR_SETTINGS
-    }
-    
-    print(f"🎬 Generating noir scene: {scene_name}")
-    print(f"📐 Dimensions: {width}x{height}")
-    print(f"🎯 Seed: {seed if seed != -1 else 'random'}")
+    logger.info(f"🎬 Generating noir scene: {scene_name}")
+    logger.info(f"📐 Dimensions: {width}x{height}")
+    logger.info(f"🎯 Seed: {seed if seed != -1 else 'random'}")
     
     try:
-        response = requests.post(f"{A1111_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
+        # Generate using ComfyUI
+        images = generate_image(
+            prompt=prompt,
+            negative_prompt=NOIR_NEGATIVE,
+            width=width,
+            height=height,
+            seed=seed,
+            steps=NOIR_SETTINGS["steps"],
+            cfg_scale=NOIR_SETTINGS["cfg_scale"],
+            sampler_name=NOIR_SETTINGS["sampler_name"],
+            scheduler=NOIR_SETTINGS["scheduler"].lower(),
+            batch_size=1,
+            timeout=180
+        )
         
-        if response.status_code == 200:
-            result = response.json()
-            
+        if images:
             # Save the generated image
-            if result['images']:
-                image_data = base64.b64decode(result['images'][0])
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"noir_{scene_name}_{timestamp}.png"
-                filepath = os.path.join(output_dir, filename)
-                
-                os.makedirs(output_dir, exist_ok=True)
-                with open(filepath, 'wb') as f:
-                    f.write(image_data)
-                
-                # Print results
-                info = json.loads(result['info'])
-                print(f"✅ Generation successful!")
-                print(f"💾 Saved: {filename}")
-                print(f"🎯 Final seed: {info['seed']}")
-                print(f"⚙️  Model: {info['sd_model_name']}")
-                print(f"⏱️  Steps: {info['steps']}")
-                
-                return {
-                    'success': True,
-                    'filename': filename,
-                    'filepath': filepath,
-                    'seed': info['seed'],
-                    'info': info
-                }
-            else:
-                print("❌ No images generated")
-                return {'success': False, 'error': 'No images in response'}
-                
-        else:
-            print(f"❌ API request failed: {response.status_code}")
-            print(response.text)
-            return {'success': False, 'error': f'HTTP {response.status_code}'}
+            image_data = images[0]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"noir_{scene_name}_{timestamp}.png"
+            filepath = os.path.join(output_dir, filename)
             
+            os.makedirs(output_dir, exist_ok=True)
+            with open(filepath, 'wb') as f:
+                f.write(image_data)
+            
+            file_size = len(image_data) / 1024
+            logger.info(f"✅ Generation successful!")
+            logger.info(f"💾 Saved: {filename} ({file_size:.1f}KB)")
+            logger.info(f"⚙️  Steps: {NOIR_SETTINGS['steps']}")
+            
+            return {
+                'success': True,
+                'filename': filename,
+                'filepath': filepath,
+                'seed': seed,
+            }
+        else:
+            logger.error("❌ No images generated")
+            return {'success': False, 'error': 'No images in response'}
+            
+    except TimeoutError:
+        logger.error(f"❌ Generation timeout after 180s")
+        return {'success': False, 'error': 'Timeout'}
     except Exception as e:
+        logger.error(f"❌ Generation error: {e}")
+        return {'success': False, 'error': str(e)}
         print(f"❌ Generation error: {e}")
         return {'success': False, 'error': str(e)}
 

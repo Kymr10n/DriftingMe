@@ -4,15 +4,20 @@ DriftingMe Scene 1 Generator - "The Awakening"
 Specialized script for generating noir comic book panels based on the opening scene.
 """
 
-import requests
-import json
-import base64
+import logging
 from datetime import datetime
-import os
+from config import get_config, get_output_path
+from comfyui_api import generate_image, check_server_status
+from utils import validate_seed
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # API Configuration
-A1111_URL = "http://localhost:7860"
-COMFYUI_URL = "http://localhost:8188"
+COMFYUI_URL = get_config('COMFYUI_URL')
+COMFYUI_URL = get_config('COMFYUI_URL')
+
 
 # Scene 1 Prompts based on the script
 SCENE_1_PROMPTS = {
@@ -83,9 +88,14 @@ GENERATION_PARAMS = {
 
 def generate_scene_1_panel(prompt_key, custom_seed=None):
     """Generate a specific panel for Scene 1"""
+    # Validate inputs
+    if not validate_prompt_key(prompt_key):
+        raise ValueError(f"Invalid prompt key format: {prompt_key}")
+    
     if prompt_key not in SCENE_1_PROMPTS:
-        print(f"Unknown prompt key: {prompt_key}")
-        return False
+        raise KeyError(f"Unknown prompt key: {prompt_key}")
+    
+    custom_seed = validate_seed(custom_seed)
     
     scene_data = SCENE_1_PROMPTS[prompt_key]
     
@@ -99,66 +109,88 @@ def generate_scene_1_panel(prompt_key, custom_seed=None):
     if custom_seed:
         payload["seed"] = custom_seed
     
-    print(f"\n🎬 Generating Scene 1 Panel: {prompt_key}")
-    print(f"📝 Style Note: {scene_data['style_note']}")
-    print(f"🎯 Prompt: {scene_data['prompt'][:100]}...")
+    logger.info(f"\n🎬 Generating Scene 1 Panel: {prompt_key}")
+    logger.info(f"📝 Style Note: {scene_data['style_note']}")
+    logger.info(f"🎯 Prompt: {scene_data['prompt'][:100]}...")
     
     try:
-        response = requests.post(f"{A1111_URL}/sdapi/v1/txt2img", json=payload, timeout=120)
+        images = generate_image(
+            prompt=payload["prompt"],
+            negative_prompt=payload["negative_prompt"],
+            width=payload["width"],
+            height=payload["height"],
+            steps=payload["steps"],
+            cfg_scale=payload["cfg_scale"],
+            sampler_name=payload["sampler_name"],
+            scheduler=payload["scheduler"].lower(),
+            seed=payload.get("seed", -1),
+            batch_size=payload.get("n_iter", 1),
+            timeout=300
+        )
         
-        if response.status_code == 200:
-            result = response.json()
+        if images:
             
             # Save generated images
-            for i, image_data in enumerate(result['images']):
+            for i, image_data in enumerate(images):
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"scene1_{prompt_key}_{timestamp}_v{i+1}.png"
-                filepath = os.path.join("/home/alex/Projects/DriftingMe/outputs", filename)
+                filename = f"generated_{timestamp}_v{i+1}.png"
+                filepath = get_output_path(filename)
                 
-                # Decode and save
-                image_bytes = base64.b64decode(image_data)
+                # Save image
+                image_bytes = image_data
                 with open(filepath, 'wb') as f:
                     f.write(image_bytes)
                 
                 file_size = len(image_bytes) / 1024
-                print(f"✅ Saved: {filename} ({file_size:.1f}KB)")
+                logger.info(f"✅ Saved: {filename} ({file_size:.1f}KB)")
             
-            # Print generation info
-            info = json.loads(result['info'])
-            print(f"🔧 Model: {info.get('sd_model_name', 'Unknown')}")
-            print(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
-            print(f"⏱️  Time: ~{info.get('job_timestamp', 'Unknown')}")
+            # Generation complete
+            
+            logger.info(f"⚙️  Seed: {info.get('seed', 'Unknown')}")
+            logger.info(f"⏱️  Time: ~{info.get('job_timestamp', 'Unknown')}")
             
             return True
             
         else:
-            print(f"❌ API Error: {response.status_code} - {response.text}")
+            logger.info(f"❌ API Error: {response.status_code} - {response.text}")
             return False
             
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Connection Error: {e}")
+    except TimeoutError:
+        logger.error(f"API request timed out after 120s")
+        return False
+    except ConnectionError as e:
+        logger.error(f"Connection Error: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Request Error: {e}")
+        return False
+    except Exception as e:
+        logger.critical(f"Unexpected error: {e}", exc_info=True)
         return False
 
 def generate_complete_scene_1():
     """Generate all panels for Scene 1 - The Awakening"""
-    print("🎭 DRIFTINGME - Scene 1: The Awakening")
-    print("=" * 50)
+    logger.info("🎭 DRIFTINGME - Scene 1: The Awakening")
+    logger.info("=" * 50)
     
     success_count = 0
     total_panels = len(SCENE_1_PROMPTS)
     
     for prompt_key in SCENE_1_PROMPTS.keys():
-        if generate_scene_1_panel(prompt_key):
-            success_count += 1
-        print("-" * 30)
+        try:
+            if generate_scene_1_panel(prompt_key):
+                success_count += 1
+        except (ValueError, KeyError) as e:
+            logger.error(f"Failed to generate {prompt_key}: {e}")
+        logger.info("-" * 30)
     
-    print(f"\n📊 Scene 1 Generation Complete:")
-    print(f"✅ Successfully generated: {success_count}/{total_panels} panels")
+    logger.info(f"\n📊 Scene 1 Generation Complete:")
+    logger.info(f"✅ Successfully generated: {success_count}/{total_panels} panels")
     
     if success_count == total_panels:
-        print("🎉 All Scene 1 panels generated successfully!")
+        logger.info("🎉 All Scene 1 panels generated successfully!")
     else:
-        print("⚠️  Some panels failed to generate. Check API status.")
+        logger.info("⚠️  Some panels failed to generate. Check API status.")
 
 def main():
     import sys
@@ -168,15 +200,19 @@ def main():
         if panel_name == "all":
             generate_complete_scene_1()
         else:
-            generate_scene_1_panel(panel_name)
+            try:
+                generate_scene_1_panel(panel_name)
+            except (ValueError, KeyError) as e:
+                logger.error(f"Generation failed: {e}")
+                sys.exit(1)
     else:
-        print("🎭 DriftingMe Scene 1 Generator")
-        print("\nAvailable panels:")
+        logger.info("🎭 DriftingMe Scene 1 Generator")
+        logger.info("\nAvailable panels:")
         for key, data in SCENE_1_PROMPTS.items():
-            print(f"  • {key}: {data['style_note']}")
-        print(f"\nUsage:")
-        print(f"  python3 {sys.argv[0]} <panel_name>")
-        print(f"  python3 {sys.argv[0]} all")
+            logger.info(f"  • {key}: {data['style_note']}")
+        logger.info(f"\nUsage:")
+        logger.info(f"  python3 {sys.argv[0]} <panel_name>")
+        logger.info(f"  python3 {sys.argv[0]} all")
 
 if __name__ == "__main__":
     main()
